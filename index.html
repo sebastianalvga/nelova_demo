@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reporte Operacional · Berel Culiacán — nelova.</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,900;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:         #0e0d0c;
+    --bg-warm:    #131210;
+    --surface:    #1a1815;
+    --surface-hi: #201e1a;
+    --border:     #2a2824;
+    --border-hi:  #383430;
+
+    --ivory:      #ede9e3;
+    --ivory-mid:  #9a958d;
+    --ivory-dim:  #5a5652;
+
+    --volt:       #B8FF3D;
+
+    /* Semantic — muted, warm versions */
+    --red:        #e05555;
+    --red-bg:     #1c1212;
+    --red-glow:   rgba(224,85,85,0.08);
+    --red-border: rgba(224,85,85,0.18);
+
+    --amber:      #d4962a;
+    --amber-bg:   #1a1508;
+    --amber-glow: rgba(212,150,42,0.07);
+    --amber-border: rgba(212,150,42,0.18);
+
+    --green:      #3db87a;
+    --green-bg:   #0d1a12;
+    --green-glow: rgba(61,184,122,0.07);
+    --green-border: rgba(61,184,122,0.18);
+
+    --blue:       #5b8fd4;
+    --blue-bg:    #0c1220;
+    --blue-glow:  rgba(91,143,212,0.07);
+    --blue-border: rgba(91,143,212,0.18);
+
+    --shadow-card: 0 2px 16px rgba(0,0,0,0.35), 0 1px 3px rgba(0,0,0,0.25);
+    --shadow-soft: 0 1px 8px rgba(0,0,0,0.2);
+    --radius-lg: 20px;
+    --radius-md: 14px;
+    --radius-sm: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--ivory);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 36px 22px 80px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+  .logo-nelova {
+    font-size: 17px; font-weight: 700;
+    color: var(--ivory); letter-spacing: -0.04em;
+  }
+  .logo-nelova span { color: var(--volt); }
+  .logo-client {
+    font-size: 10px; color: var(--ivory-dim);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.08em; margin-top: 4px; text-transform: uppercase;
+  }
+  .header-meta { text-align: right; }
+  .header-period {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--ivory-dim);
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .header-delivery {
+    font-size: 10px; color: var(--volt);
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.03em; margin-top: 3px;
+    opacity: 0.8;
+  }
+
+  /* ── PDF BUTTON ── */
+  .pdf-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--surface-hi);
+    border: 1px solid var(--border-hi);
+    border-radius: 999px;
+    padding: 5px 13px;
+    font-size: 10px; font-family: 'DM Mono', monospace;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    color: var(--ivory-mid);
+    cursor: pointer;
+    transition: border-color 0.2s, color 0.2s;
+    white-space: nowrap;
+  }
+  .pdf-btn:hover { border-color: var(--border-hi); color: var(--ivory); }
+  .pdf-btn svg { opacity: 0.6; }
+
+  /* ── ESTADO BADGE ── */
+  .estado-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: var(--amber-glow);
+    border: 1px solid var(--amber-border);
+    border-radius: 999px;
+    padding: 6px 14px;
+    margin-bottom: 24px;
+  }
+  .estado-dot {
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--amber);
+    animation: pulse 2.5s ease-in-out infinite;
+    flex-shrink: 0;
+  }
+  .estado-text {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--amber);
+  }
+  .estado-sep { color: var(--amber-border); font-size: 10px; }
+  .estado-desc { font-size: 10px; color: var(--ivory-dim); }
+
+  /* ── METRIC GRID ── */
+  .metric-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .mcard {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 22px 20px;
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .mcard:hover { border-color: var(--border-hi); }
+
+  .mcard.full   { grid-column: 1 / -1; }
+  .mcard.red    { background: var(--red-bg);   border-color: var(--red-border);   box-shadow: var(--shadow-card), 0 0 24px var(--red-glow); }
+  .mcard.amber  { background: var(--amber-bg); border-color: var(--amber-border); box-shadow: var(--shadow-card), 0 0 20px var(--amber-glow); }
+  .mcard.green  { background: var(--green-bg); border-color: var(--green-border); box-shadow: var(--shadow-card), 0 0 20px var(--green-glow); }
+  .mcard.blue   { background: var(--blue-bg);  border-color: var(--blue-border);  box-shadow: var(--shadow-card), 0 0 20px var(--blue-glow); }
+  .mcard.neutral{ background: var(--surface);  border-color: var(--border); }
+
+  .mcard-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.11em;
+    text-transform: uppercase; margin-bottom: 10px;
+    opacity: 0.75;
+  }
+  .mcard.red    .mcard-tag { color: var(--red); }
+  .mcard.amber  .mcard-tag { color: var(--amber); }
+  .mcard.green  .mcard-tag { color: var(--green); }
+  .mcard.blue   .mcard-tag { color: var(--blue); }
+  .mcard.neutral .mcard-tag { color: var(--ivory-dim); }
+
+  .mcard-num {
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 900; letter-spacing: -0.04em; line-height: 1;
+    margin-bottom: 5px;
+  }
+  .hero-num    { font-size: 54px; color: var(--blue); }
+  .large-num   { font-size: 44px; }
+  .critico-num { font-size: 68px; }
+
+  .mcard.red    .large-num,
+  .mcard.red    .critico-num  { color: var(--red); }
+  .mcard.amber  .large-num    { color: var(--amber); }
+  .mcard.green  .large-num    { color: var(--green); }
+  .mcard.blue   .large-num,
+  .mcard.blue   .hero-num     { color: var(--blue); }
+  .mcard.neutral .large-num   { color: var(--ivory); }
+
+  .mcard-label {
+    font-size: 12px; font-weight: 500;
+    color: var(--ivory); line-height: 1.3; margin-bottom: 4px;
+  }
+  .mcard-sub {
+    font-size: 11px; line-height: 1.5;
+  }
+  .mcard.red    .mcard-sub { color: rgba(224,85,85,0.6); }
+  .mcard.amber  .mcard-sub { color: rgba(212,150,42,0.6); }
+  .mcard.green  .mcard-sub { color: rgba(61,184,122,0.55); }
+  .mcard.blue   .mcard-sub { color: rgba(91,143,212,0.55); }
+  .mcard.neutral .mcard-sub { color: var(--ivory-dim); }
+
+  /* Progress bar */
+  .mcard-bar {
+    margin-top: 13px; height: 3px;
+    background: rgba(255,255,255,0.05); border-radius: 2px;
+    overflow: hidden;
+  }
+  .mcard-bar-fill { height: 100%; border-radius: 2px; }
+  .mcard.red   .mcard-bar-fill { background: var(--red); }
+  .mcard.amber .mcard-bar-fill { background: var(--amber); }
+  .mcard.green .mcard-bar-fill { background: var(--green); }
+  .mcard.blue  .mcard-bar-fill { background: var(--blue); }
+
+  /* ── SECTION DIVIDER ── */
+  .section-divider {
+    height: 1px; background: var(--border);
+    margin: 32px 0 26px;
+    position: relative;
+  }
+  .section-divider-label {
+    position: absolute; top: 50%; left: 0;
+    transform: translateY(-50%);
+    background: var(--bg);
+    padding-right: 14px;
+    font-family: 'DM Mono', monospace;
+    font-size: 9px; letter-spacing: 0.16em;
+    text-transform: uppercase; color: var(--ivory-dim);
+  }
+
+  /* ── HALLAZGOS ACCORDION ── */
+  .hallazgos-list { display: flex; flex-direction: column; gap: 0; }
+
+  .hallazgo-item {
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .hallazgo-item:first-child { border-top: 1px solid var(--border); }
+
+  .hallazgo-header {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    gap: 12px;
+    align-items: center;
+    padding: 17px 0 17px 14px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.15s;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .hallazgo-header::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 12px; bottom: 12px;
+    width: 2px; border-radius: 2px;
+    transition: opacity 0.2s;
+  }
+  .hallazgo-item.alta  .hallazgo-header::before { background: var(--red);   opacity: 0.7; }
+  .hallazgo-item.media .hallazgo-header::before { background: var(--amber); opacity: 0.7; }
+  .hallazgo-item.open  .hallazgo-header::before { opacity: 1; }
+
+  .hallazgo-header:hover { background: rgba(255,255,255,0.015); }
+  .hallazgo-item.open .hallazgo-header { background: rgba(255,255,255,0.02); }
+
+  .h-num {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--ivory-dim);
+  }
+  .h-title {
+    font-size: 13px; font-weight: 500;
+    color: var(--ivory); line-height: 1.35;
+    transition: color 0.15s;
+  }
+  .hallazgo-item.open .h-title { color: #ffffff; }
+
+  .h-right {
+    display: flex; align-items: center; gap: 8px;
+  }
+  .h-tag {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.07em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 4px;
+    white-space: nowrap;
+  }
+  .h-tag.alta  { background: rgba(224,85,85,0.1);   color: var(--red); }
+  .h-tag.media { background: rgba(212,150,42,0.1);  color: var(--amber); }
+
+  .h-chevron {
+    width: 14px; height: 14px; color: var(--ivory-dim);
+    transition: transform 0.25s cubic-bezier(0.4,0,0.2,1), color 0.15s;
+    flex-shrink: 0;
+  }
+  .hallazgo-item.open .h-chevron {
+    transform: rotate(180deg);
+    color: var(--ivory-mid);
+  }
+
+  .hallazgo-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s cubic-bezier(0.4,0,0.2,1), opacity 0.25s ease;
+    opacity: 0;
+  }
+  .hallazgo-item.open .hallazgo-body {
+    max-height: 300px;
+    opacity: 1;
+  }
+  .hallazgo-body-inner {
+    padding: 0 0 18px 54px;
+    font-size: 12px; color: #ffffff;
+    font-weight: 400; line-height: 1.65;
+  }
+  .hallazgo-item.alta  .hallazgo-body-inner strong { color: var(--red);   font-weight: 700; }
+  .hallazgo-item.media .hallazgo-body-inner strong { color: var(--amber); font-weight: 700; }
+
+  /* ── ANOMALÍAS ── */
+  .alerta-bloque {
+    border: 1px solid var(--red-border);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow-soft), 0 0 20px var(--red-glow);
+  }
+  .anomalia {
+    background: var(--red-bg);
+    padding: 18px 20px;
+  }
+  .anomalia-tag {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--red); margin-bottom: 6px; opacity: 0.9;
+  }
+  .anomalia-title {
+    font-size: 13px; font-weight: 500;
+    color: #ffffff; margin-bottom: 5px; line-height: 1.35;
+  }
+  .anomalia-body {
+    font-size: 12px; color: rgba(255,255,255,0.75);
+    font-weight: 400; line-height: 1.65;
+  }
+  .anomalia-body strong { color: var(--red); font-weight: 700; }
+
+  .alerta-connector {
+    background: var(--surface);
+    padding: 0 20px;
+    display: flex; align-items: center; gap: 10px;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .connector-line { flex: 1; height: 1px; background: var(--border); }
+  .connector-label {
+    font-size: 9px; color: var(--ivory-dim);
+    letter-spacing: 0.07em; text-transform: uppercase;
+    font-family: 'DM Mono', monospace;
+    padding: 7px 0;
+  }
+
+  .accion-derivada {
+    background: rgba(184,255,61,0.03);
+    padding: 16px 20px;
+    border-top: none;
+  }
+  .accion-derivada-tag {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--volt); margin-bottom: 6px; opacity: 0.8;
+  }
+  .accion-derivada-body {
+    font-size: 12px; color: #ffffff;
+    font-weight: 400; line-height: 1.65;
+  }
+  .accion-derivada-body strong { color: var(--ivory); font-weight: 600; }
+
+  /* ── ACCIÓN SEMANA ── */
+  .accion {
+    background: rgba(184,255,61,0.03);
+    border: 1px solid rgba(184,255,61,0.14);
+    border-radius: var(--radius-md);
+    padding: 20px;
+    margin-top: 10px;
+    box-shadow: 0 0 24px rgba(184,255,61,0.04);
+  }
+  .accion-tag {
+    font-size: 9px; font-weight: 600;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--volt); margin-bottom: 5px; opacity: 0.9;
+  }
+  .accion-title {
+    font-size: 13px; font-weight: 500;
+    color: #ffffff; margin-bottom: 14px; line-height: 1.4;
+  }
+  .accion-steps { list-style: none; display: flex; flex-direction: column; gap: 0; }
+  .accion-steps li {
+    font-size: 12px; color: rgba(255,255,255,0.8);
+    padding: 14px 0; border-bottom: 1px solid var(--border);
+    display: flex; gap: 12px; align-items: flex-start; line-height: 1.6;
+  }
+  .accion-steps li:last-child { border-bottom: none; padding-bottom: 0; }
+  .accion-steps li strong { color: #ffffff; font-weight: 600; }
+  .step-num {
+    font-family: 'DM Mono', monospace; font-size: 9px;
+    color: var(--volt); background: rgba(184,255,61,0.07);
+    border: 1px solid rgba(184,255,61,0.13);
+    border-radius: 4px; padding: 2px 6px;
+    flex-shrink: 0; margin-top: 2px;
+  }
+  .step-outcome {
+    display: flex; align-items: flex-start; gap: 6px;
+    margin-top: 8px; padding: 8px 10px;
+    background: rgba(184,255,61,0.05);
+    border-left: 2px solid rgba(184,255,61,0.3);
+    border-radius: 0 4px 4px 0;
+    font-size: 11.5px; color: rgba(255,255,255,0.9);
+    font-style: normal; line-height: 1.5;
+  }
+  .step-outcome-arrow {
+    color: var(--volt); font-weight: 700;
+    flex-shrink: 0; margin-top: 1px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    margin-top: 40px; padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .footer-brand {
+    font-size: 13px; font-weight: 700; letter-spacing: -0.03em;
+  }
+  .footer-brand span { color: var(--volt); }
+  .footer-brand-sub {
+    font-size: 10px; font-weight: 300;
+    color: var(--ivory-dim); letter-spacing: 0.01em;
+    margin-left: 5px;
+  }
+  .footer-date {
+    font-size: 10px; color: var(--ivory-dim);
+    font-family: 'DM Mono', monospace;
+  }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: #fff; color: #111; padding: 20px; }
+    .pdf-btn { display: none; }
+    .mcard { box-shadow: none; border: 1px solid #ddd; background: #fafafa !important; }
+    .h-chevron, .hallazgo-body { display: none; }
+    .hallazgo-header { cursor: default; }
+    .hallazgo-body { max-height: none !important; opacity: 1 !important; display: block !important; }
+    .hallazgo-body-inner { padding-left: 40px; }
+    .alerta-bloque, .accion { box-shadow: none; border: 1px solid #ddd; }
+  }
+
+  @media (max-width: 480px) {
+    body { padding: 24px 16px 60px; }
+    .hero-num    { font-size: 40px; }
+    .critico-num { font-size: 52px; }
+    .large-num   { font-size: 34px; }
+    .hallazgo-body-inner { padding-left: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="logo-nelova">nelova<span>.</span></div>
+    <div class="logo-client">Berel Culiacán</div>
+  </div>
+  <div class="header-meta">
+    <div style="display:flex; align-items:center; gap:10px; justify-content:flex-end; margin-bottom:6px;">
+      <div class="header-period">Ene – Mar 2026</div>
+      <button class="pdf-btn" onclick="window.print()">
+        <svg width="11" height="11" viewBox="0 0 12 12" fill="none">
+          <path d="M2 8.5V10.5H10V8.5M6 1.5V7.5M6 7.5L3.5 5M6 7.5L8.5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        PDF
+      </button>
+    </div>
+    <div class="header-delivery">● Entrega automática · lunes 7:00 AM</div>
+  </div>
+</div>
+
+<!-- ESTADO -->
+<div class="estado-badge">
+  <div class="estado-dot"></div>
+  <span class="estado-text">Atención</span>
+  <span class="estado-sep">·</span>
+  <span class="estado-desc">2 riesgos activos · 1 oportunidad sin capitalizar · 2 anomalías</span>
+</div>
+
+<!-- METRIC GRID -->
+<div class="metric-grid">
+
+  <!-- HERO: facturación total -->
+  <div class="mcard blue full">
+    <div style="display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:12px;">
+      <div>
+        <div class="mcard-tag">Facturación Q1 2026</div>
+        <div class="mcard-num hero-num">$315,781</div>
+        <div class="mcard-sub" style="margin-top:4px;">Promedio mensual: <strong style="color:var(--blue);">$105,260</strong></div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:9px; color:rgba(91,143,212,0.4); font-family:'DM Mono',monospace; letter-spacing:0.07em; text-transform:uppercase; margin-bottom:5px;">Ene · Feb · Mar</div>
+        <svg width="120" height="32" viewBox="0 0 120 32" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#5b8fd4" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#5b8fd4" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <polygon points="0,28 60,22 120,4 120,32 0,32" fill="url(#sparkGrad)"/>
+          <polyline points="0,28 60,22 120,4" fill="none" stroke="rgba(91,143,212,0.35)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <polyline points="0,28 60,22 120,4" fill="none" stroke="#5b8fd4" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="120" cy="4" r="3" fill="#5b8fd4"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promedio semanal -->
+  <div class="mcard neutral">
+    <div class="mcard-tag">Ritmo</div>
+    <div class="mcard-num large-num">$24,291</div>
+    <div class="mcard-label">Promedio semanal</div>
+    <div class="mcard-sub">Base Q1 · 13 semanas</div>
+  </div>
+
+  <!-- Clientes únicos -->
+  <div class="mcard blue">
+    <div class="mcard-tag">Base activa</div>
+    <div class="mcard-num large-num">71</div>
+    <div class="mcard-label">Clientes únicos</div>
+    <div class="mcard-sub">~$4,448 facturado por cliente</div>
+  </div>
+
+  <!-- CRÍTICO: dependencia cliente #1 -->
+  <div class="mcard red full">
+    <div class="mcard-tag">⬤ Riesgo crítico</div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <div>
+        <div class="mcard-num critico-num">24.2%</div>
+        <div class="mcard-label" style="margin-top:7px;">L.E. Valenzuela · Dependencia cliente #1</div>
+        <div class="mcard-sub" style="margin-top:3px;">1 de cada 4 pesos · $130,852 · 32 compras</div>
+      </div>
+      <svg width="80" height="80" viewBox="0 0 80 80" style="flex-shrink:0; margin-left:auto;">
+        <circle cx="40" cy="40" r="30" fill="none" stroke="rgba(224,85,85,0.1)" stroke-width="7"/>
+        <circle cx="40" cy="40" r="30" fill="none" stroke="#e05555" stroke-width="7"
+          stroke-dasharray="45.7 142.7" stroke-dashoffset="35.7" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="mcard-bar" style="margin-top:14px;"><div class="mcard-bar-fill" style="width:24.2%;"></div></div>
+  </div>
+
+  <!-- AMBER 1: concentración top 3 -->
+  <div class="mcard amber">
+    <div class="mcard-tag">Vigilar</div>
+    <div class="mcard-num large-num">51.1%</div>
+    <div class="mcard-label">Concentración top 3</div>
+    <div style="margin-top:14px; display:flex; flex-direction:column; gap:7px;">
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="font-size:9px; color:rgba(212,150,42,0.6); font-family:'DM Mono',monospace; letter-spacing:0.05em;">TOP 3</span>
+          <span style="font-size:9px; color:var(--amber); font-family:'DM Mono',monospace;">$276,724</span>
+        </div>
+        <div style="height:5px; background:rgba(212,150,42,0.08); border-radius:3px; overflow:hidden;">
+          <div style="height:100%; width:51.1%; background:var(--amber); border-radius:3px;"></div>
+        </div>
+      </div>
+      <div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:4px;">
+          <span style="font-size:9px; color:rgba(212,150,42,0.4); font-family:'DM Mono',monospace; letter-spacing:0.05em;">68 REST.</span>
+          <span style="font-size:9px; color:rgba(212,150,42,0.5); font-family:'DM Mono',monospace;">$239,057</span>
+        </div>
+        <div style="height:5px; background:rgba(212,150,42,0.08); border-radius:3px; overflow:hidden;">
+          <div style="height:100%; width:48.9%; background:rgba(212,150,42,0.22); border-radius:3px;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AMBER 2: ticket contratista con sparkline -->
+  <div class="mcard amber">
+    <div class="mcard-tag">Vigilar</div>
+    <div class="mcard-num large-num">$3,272</div>
+    <div class="mcard-label">Ticket prom. contratista</div>
+    <svg width="100%" height="36" viewBox="0 0 160 36" preserveAspectRatio="none" style="margin:12px 0 5px;">
+      <polyline points="0,28 20,22 40,30 60,18 80,24 100,14 120,20 140,10 160,16"
+        fill="none" stroke="rgba(212,150,42,0.25)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <polyline points="0,28 20,22 40,30 60,18 80,24 100,14 120,20 140,10 160,16"
+        fill="none" stroke="#d4962a" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="160" cy="16" r="3" fill="#d4962a"/>
+    </svg>
+    <div class="mcard-sub">71 transacciones · Q1 2026</div>
+  </div>
+
+  <!-- GREEN: bloque institucional -->
+  <div class="mcard green full">
+    <div class="mcard-tag">Oportunidad</div>
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap;">
+      <div>
+        <div class="mcard-num large-num">12.4%</div>
+        <div class="mcard-label" style="margin-top:4px;">Bloque institucional</div>
+        <div class="mcard-sub" style="margin-top:2px;">$67,141 · pago puntual</div>
+      </div>
+      <div style="min-width:140px; flex:1;">
+        <div style="font-size:9px; color:rgba(61,184,122,0.5); font-family:'DM Mono',monospace; letter-spacing:0.06em; margin-bottom:5px; display:flex; justify-content:space-between;">
+          <span>ACTUAL</span><span>META $120K</span>
+        </div>
+        <div style="height:4px; background:rgba(61,184,122,0.08); border-radius:2px; overflow:hidden;">
+          <div style="height:100%; width:55.9%; background:var(--green); border-radius:2px;"></div>
+        </div>
+        <div style="font-size:10px; color:rgba(61,184,122,0.5); margin-top:5px;">$52,859 para la meta trimestral</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DIVIDER HALLAZGOS -->
+<div class="section-divider">
+  <span class="section-divider-label">Hallazgos</span>
+</div>
+
+<!-- HALLAZGOS ACCORDION -->
+<div class="hallazgos-list">
+
+  <div class="hallazgo-item alta open">
+    <div class="hallazgo-header" onclick="toggleHallazgo(this)">
+      <span class="h-num">01</span>
+      <div class="h-title">Concentración crítica en un solo cliente</div>
+      <div class="h-right">
+        <span class="h-tag alta">Alta</span>
+        <svg class="h-chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <polyline points="3,5 7,9 11,5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hallazgo-body">
+      <div class="hallazgo-body-inner">Luis Enrique Valenzuela representa el <strong>24.2% de la facturación trimestral</strong> ($130,852 en 32 compras). Si pausa obras o cambia de proveedor, el impacto en flujo sería inmediato. Diversificar esta concentración es la palanca de mayor impacto en estabilidad de ingresos.</div>
+    </div>
+  </div>
+
+  <div class="hallazgo-item alta">
+    <div class="hallazgo-header" onclick="toggleHallazgo(this)">
+      <span class="h-num">02</span>
+      <div class="h-title">La estructura real de ingresos es de distribución</div>
+      <div class="h-right">
+        <span class="h-tag alta">Alta</span>
+        <svg class="h-chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <polyline points="3,5 7,9 11,5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hallazgo-body">
+      <div class="hallazgo-body-inner">3 clientes concentran <strong>$276,724 (51.1%)</strong> del trimestre con tickets altos y compras frecuentes. Los 68 restantes operan en volumen bajo. Hay una oportunidad clara de formalizar condiciones comerciales diferenciadas para el segmento de alto volumen.</div>
+    </div>
+  </div>
+
+  <div class="hallazgo-item media">
+    <div class="hallazgo-header" onclick="toggleHallazgo(this)">
+      <span class="h-num">03</span>
+      <div class="h-title">Bloque institucional desaprovechado</div>
+      <div class="h-right">
+        <span class="h-tag media">Media</span>
+        <svg class="h-chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <polyline points="3,5 7,9 11,5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hallazgo-body">
+      <div class="hallazgo-body-inner">Guarderías + centros educativos + universidad suman <strong>$67,141 en 37 facturas</strong>, todas ~$1,990. Pagan puntual y compran en batch mensual — el perfil de cliente ideal. No hay acción visible para retenerlos ni crecer esa cartera.</div>
+    </div>
+  </div>
+
+  <div class="hallazgo-item media">
+    <div class="hallazgo-header" onclick="toggleHallazgo(this)">
+      <span class="h-num">04</span>
+      <div class="h-title">$33,747 sin cliente identificado</div>
+      <div class="h-right">
+        <span class="h-tag media">Media</span>
+        <svg class="h-chevron" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <polyline points="3,5 7,9 11,5"/>
+        </svg>
+      </div>
+    </div>
+    <div class="hallazgo-body">
+      <div class="hallazgo-body-inner">El 22 de enero hubo una venta a <strong>"Público en General"</strong> por $33,747 — el ticket individual más alto del trimestre (10.7% de la facturación total). Sin nombre registrado, el seguimiento no es posible. Si fue un contratista nuevo, hay una conversión pendiente.</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- DIVIDER ANOMALÍAS -->
+<div class="section-divider" style="margin-top:32px;">
+  <span class="section-divider-label">Anomalías</span>
+</div>
+
+<div class="alerta-bloque">
+  <div class="anomalia">
+    <div class="anomalia-tag">⚠ Anomalía detectada</div>
+    <div class="anomalia-title">15 facturas en un día, todas cerca de $2,000</div>
+    <div class="anomalia-body">El 30 de enero, Jesús René Castro generó <strong>15 facturas en un solo día</strong> por $29,875 total, con montos entre $1,964 y $1,999. El patrón de importes casi idénticos justo debajo de $2,000 sugiere fragmentación deliberada de una compra grande. Requiere revisión contable.</div>
+  </div>
+  <div class="alerta-connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">qué hacer</div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="accion-derivada">
+    <div class="accion-derivada-tag">→ Pasos a seguir</div>
+    <div class="accion-derivada-body">Habla con el equipo de caja: ¿fue una venta real o hay un límite de autorización en $2,000 que estén bordeando? Si el límite existe en sistema, <strong>auméntalo o documenta la excepción</strong>. Si no existe, revisa con contabilidad si hay implicación fiscal.</div>
+  </div>
+</div>
+
+<div class="alerta-bloque">
+  <div class="anomalia">
+    <div class="anomalia-tag">⚠ Anomalía detectada</div>
+    <div class="anomalia-title">Venta de $33,747 sin cliente registrado</div>
+    <div class="anomalia-body">El ticket más alto del trimestre quedó bajo <strong>"Público en General"</strong> — sin nombre, sin contacto, sin seguimiento posible. El patrón sugiere que no hay un proceso claro para capturar datos de compradores de alto valor en punto de venta.</div>
+  </div>
+  <div class="alerta-connector">
+    <div class="connector-line"></div>
+    <div class="connector-label">qué hacer</div>
+    <div class="connector-line"></div>
+  </div>
+  <div class="accion-derivada">
+    <div class="accion-derivada-tag">→ Pasos a seguir</div>
+    <div class="accion-derivada-body">Revisa notas internas o pregunta al vendedor de turno quién atendió esa venta el 22 de enero. Si lo identificas, <strong>llámalo esta semana</strong> — es el perfil exacto de cliente contratista de alto volumen.</div>
+  </div>
+</div>
+
+<!-- ACCIÓN SEMANA -->
+<div class="accion">
+  <div class="accion-tag">✦ Acción de esta semana</div>
+  <div class="accion-title">Recupera dos oportunidades de conversión antes de que se enfríen</div>
+  <ul class="accion-steps">
+    <li>
+      <span class="step-num">1</span>
+      <div>
+        <strong>Identifica al comprador de $33,747 del 22 enero.</strong> Revisa notas internas, cámara, o pregunta al vendedor de turno quién atendió esa venta.
+        <div class="step-outcome"><span class="step-outcome-arrow">→</span> Llámalo esta semana y ofrécele cuenta de contratista con condiciones especiales.</div>
+      </div>
+    </li>
+    <li>
+      <span class="step-num">2</span>
+      <div>
+        <strong>Propón a las institucionales un acuerdo de suministro mensual.</strong> Ya compran en batch, ya pagan puntual. Solo falta formalizarlo con precio fijo y fecha de entrega acordada.
+        <div class="step-outcome"><span class="step-outcome-arrow">→</span> Objetivo: convertir los $67,141 en ingreso predecible en lugar de recurrencia aleatoria.</div>
+      </div>
+    </li>
+  </ul>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-brand">
+    nelova<span>.</span><span class="footer-brand-sub">Inteligencia Operacional</span>
+  </div>
+  <div class="footer-date">07 abr 2026 · 7:00 AM</div>
+</div>
+
+<script>
+  function toggleHallazgo(header) {
+    const item = header.closest('.hallazgo-item');
+    item.classList.toggle('open');
+  }
+</script>
+
+</body>
+</html>
