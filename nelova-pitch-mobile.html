@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nelova. · Diagnóstico Operacional</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian: #0a0a0a;
+    --ivory: #e8e6e6;
+    --ivory-dim: #6a6a68;
+    --ivory-mid: #a0a09e;
+    --volt: #B8FF3D;
+    --red: #FF4444;   --red-bg: #1a0808;
+    --amber: #FFB020; --amber-bg: #1a1200;
+    --green: #3DFF8F; --green-bg: #081a0e;
+    --blue: #5B9EF0;  --blue-bg: #080e1a;
+    --surface: #111111;
+    --border: #1e1e1e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--obsidian); color: var(--ivory); font-family: 'DM Sans', sans-serif; }
+
+  /* ── GRAIN ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    opacity: 0.028;
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed; top: 0; left: 0;
+    height: 2px;
+    background: var(--volt);
+    transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 9999;
+    box-shadow: 0 0 8px rgba(184,255,61,0.5);
+  }
+
+  /* ── DECK ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    padding: 56px 28px 80px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+  .slide.scroll-top { justify-content: flex-start; padding-top: 48px; }
+
+  .slide::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse 70% 50% at 80% 10%, rgba(184,255,61,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 50% 40% at 15% 90%, rgba(184,255,61,0.04) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .slide > * { position: relative; z-index: 1; width: 100%; }
+  .slide.left { align-items: flex-start; text-align: left; }
+
+  /* ── STAGGER ── */
+  @keyframes staggerIn {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .stagger-el { opacity: 0; }
+  .stagger-el.animate {
+    animation: staggerIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .slide-eyebrow {
+    font-family: 'DM Mono', monospace;
+    font-size: 10px; color: var(--volt);
+    letter-spacing: 0.14em; text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .slide-title {
+    font-size: clamp(34px, 9vw, 56px);
+    font-weight: 900; letter-spacing: -0.04em;
+    line-height: 1.05; margin-bottom: 16px; color: var(--ivory);
+  }
+  .slide-title .volt { color: var(--volt); }
+  .slide-sub {
+    font-size: 16px; color: var(--ivory-mid);
+    font-weight: 300; line-height: 1.6;
+    max-width: 100%;
+  }
+  .slide-logo {
+    font-size: 20px; font-weight: 700;
+    letter-spacing: -0.04em; color: var(--ivory);
+    margin-bottom: 28px;
+  }
+  .slide-logo span { color: var(--volt); }
+
+  /* ── CARDS ── */
+  .bento { display: grid; gap: 8px; width: 100%; }
+  .bento-2 { grid-template-columns: 1fr 1fr; }
+  .bento-1 { grid-template-columns: 1fr; }
+
+  .card {
+    border-radius: 12px;
+    padding: 14px 16px 18px;
+    display: flex; flex-direction: column; gap: 4px;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-red     { background: var(--red-bg);   border: 1px solid rgba(255,68,68,0.2); }
+  .card-amber   { background: var(--amber-bg); border: 1px solid rgba(255,176,32,0.15); }
+  .card-green   { background: var(--green-bg); border: 1px solid rgba(61,255,143,0.12); }
+  .card-blue    { background: var(--blue-bg);  border: 1px solid rgba(91,158,240,0.15); }
+  .card-surface { background: var(--surface);  border: 1px solid var(--border); }
+
+  .card-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 8px; letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .card-red .card-tag   { color: var(--red); }
+  .card-amber .card-tag { color: var(--amber); }
+  .card-green .card-tag { color: var(--green); }
+  .card-blue .card-tag  { color: var(--blue); }
+
+  .card-icon { margin-bottom: 4px; }
+  .card-num {
+    font-size: clamp(24px, 7vw, 40px);
+    font-weight: 900; letter-spacing: -0.04em;
+    line-height: 1; margin-bottom: 3px;
+  }
+  .card-red .card-num   { color: var(--red); }
+  .card-amber .card-num { color: var(--amber); }
+  .card-green .card-num { color: var(--green); }
+  .card-blue .card-num  { color: var(--blue); }
+
+  .card-label { font-size: 12px; font-weight: 600; color: #fff; }
+  .card-sub   { font-size: 11px; font-weight: 400; color: rgba(255,255,255,0.7); line-height: 1.45; }
+
+  /* ── STEPS (vertical on mobile) ── */
+  .step-flow { display: flex; flex-direction: column; gap: 0; width: 100%; }
+  .step {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px;
+    transition: box-shadow 0.2s;
+  }
+  .step.volt-accent { border-color: rgba(184,255,61,0.25); background: rgba(184,255,61,0.04); }
+  .step-num { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--volt); letter-spacing: 0.1em; margin-bottom: 6px; }
+  .step-title { font-size: 14px; font-weight: 600; color: #fff; margin-bottom: 5px; }
+  .step.volt-accent .step-title { color: var(--volt); }
+  .step-body { font-size: 12px; font-weight: 300; color: var(--ivory-mid); line-height: 1.5; }
+  .step-compat { margin-top: 8px; font-size: 10px; color: var(--ivory-dim); font-family:'DM Mono',monospace; letter-spacing:0.06em; }
+
+  .step-arrow-down {
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; color: var(--volt);
+    padding: 4px 0;
+  }
+
+  /* ── PRICING ── */
+  .precio-bloque { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+  .precio-card { border-radius: 12px; padding: 20px 18px; }
+  .precio-card.primary   { background: rgba(184,255,61,0.06); border: 1px solid rgba(184,255,61,0.25); }
+  .precio-card.secondary { background: var(--surface); border: 1px solid var(--border); }
+  .precio-label { font-family: 'DM Mono', monospace; font-size: 8px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+  .precio-card.primary .precio-label   { color: var(--volt); }
+  .precio-card.secondary .precio-label { color: var(--ivory-dim); }
+  .precio-num { font-size: clamp(32px,9vw,48px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; margin-bottom: 5px; }
+  .precio-card.primary .precio-num   { color: var(--volt); }
+  .precio-card.secondary .precio-num { color: var(--ivory); }
+  .precio-desc { font-size: 12px; font-weight: 300; color: var(--ivory-mid); margin-bottom: 12px; line-height: 1.5; }
+  .precio-includes { list-style: none; }
+  .precio-includes li {
+    font-size: 12px; font-weight: 300; color: #fff;
+    padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; align-items: flex-start; gap: 8px; line-height: 1.4;
+  }
+  .precio-includes li:last-child { border-bottom: none; }
+  .precio-dot { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .precio-card.primary .precio-dot   { background: var(--volt); }
+  .precio-card.secondary .precio-dot { background: var(--ivory-dim); }
+
+  /* ── M01 ── */
+  .m01-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px; text-align: left; width: 100%;
+  }
+  .m01-tag { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--volt); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 8px; }
+  .m01-title { font-size: 17px; font-weight: 700; color: #fff; margin-bottom: 5px; letter-spacing: -0.02em; }
+  .m01-sub { font-size: 12px; font-weight: 300; color: var(--ivory-mid); margin-bottom: 14px; line-height: 1.5; }
+  .m01-items { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .m01-item { background: rgba(184,255,61,0.03); border: 1px solid rgba(184,255,61,0.1); border-radius: 8px; padding: 10px 12px; }
+  .m01-item-tag { font-family: 'DM Mono', monospace; font-size: 8px; color: var(--volt); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 3px; }
+  .m01-item-body { font-size: 11px; font-weight: 300; color: #fff; line-height: 1.4; }
+
+  /* ── CTA ── */
+  .cta-num { font-family: 'DM Mono', monospace; font-size: clamp(26px,7vw,40px); font-weight: 500; color: var(--volt); letter-spacing: -0.02em; margin-bottom: 4px; }
+  .cta-sub { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--ivory-dim); letter-spacing: 0.06em; margin-top: 12px; }
+
+  /* ── NAV (mobile centered, bigger touch targets) ── */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    display: flex; align-items: center; justify-content: center;
+    gap: 20px; z-index: 100;
+    padding: 12px 0 20px;
+    background: linear-gradient(to top, rgba(10,10,10,0.95) 60%, transparent);
+  }
+  .nav-counter { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ivory-dim); letter-spacing: 0.08em; min-width: 36px; text-align: center; }
+  .nav-btn {
+    width: 44px; height: 44px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--ivory); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .nav-btn:active { border-color: var(--volt); background: rgba(184,255,61,0.1); }
+
+  /* ── SPACING HELPERS ── */
+  .mt-sm  { margin-top: 10px; }
+  .mt-md  { margin-top: 16px; }
+  .mb-sm  { margin-bottom: 10px; }
+  .mb-md  { margin-bottom: 16px; }
+</style>
+</head>
+<body>
+
+<div id="progress-bar" style="width:14.28%"></div>
+
+<div class="deck" id="deck">
+
+  <!-- S1: PORTADA -->
+  <div class="slide active" id="s1">
+    <div class="slide-logo stagger-el">nelova<span style="color:var(--volt)">.</span></div>
+    <div class="slide-eyebrow stagger-el">Diagnóstico Operacional · Culiacán, Sinaloa</div>
+    <h1 class="slide-title stagger-el">Tu negocio<br>ya tiene<br><span class="volt">los datos.</span></h1>
+    <p class="slide-sub stagger-el">Nosotros los convertimos en decisiones que te llegan cada semana.</p>
+  </div>
+
+  <!-- S2: PROBLEMA -->
+  <div class="slide scroll-top" id="s2">
+    <div class="slide-eyebrow stagger-el" style="text-align:center;">El problema</div>
+    <h2 class="slide-title stagger-el mb-md" style="font-size:clamp(26px,7vw,42px); text-align:center;">
+      Tu sistema registra todo.<br><span class="volt">Nadie lo convierte en decisiones.</span>
+    </h2>
+    <div class="bento bento-1 stagger-el">
+      <div class="card card-red">
+        <div class="card-tag">Visibilidad</div>
+        <div class="card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12C3 12 6 6 12 6C18 6 21 12 21 12C21 12 18 18 12 18C6 18 3 12 3 12Z" stroke="#FF4444" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="3" stroke="#FF4444" stroke-width="1.5" opacity="0.4"/>
+            <line x1="4" y1="4" x2="20" y2="20" stroke="#FF4444" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-num" style="font-size:clamp(18px,5vw,26px);">Decisiones a ojo</div>
+        <div class="card-label">Sin datos estructurados</div>
+        <div class="card-sub">los problemas se detectan cuando ya es tarde</div>
+      </div>
+      <div class="card card-amber">
+        <div class="card-tag">Datos sin leer</div>
+        <div class="card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <rect x="4" y="3" width="16" height="18" rx="2" stroke="#FFB020" stroke-width="1.5"/>
+            <line x1="8" y1="8" x2="16" y2="8" stroke="#FFB020" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="8" y1="12" x2="16" y2="12" stroke="#FFB020" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="8" y1="16" x2="12" y2="16" stroke="#FFB020" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="card-num" style="font-size:clamp(18px,5vw,26px);">El sistema existe</div>
+        <div class="card-label">Pero nadie lo analiza</div>
+        <div class="card-sub">historial valioso acumulándose sin uso</div>
+      </div>
+      <div class="card card-blue">
+        <div class="card-tag">Reacción tardía</div>
+        <div class="card-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#5B9EF0" stroke-width="1.5"/>
+            <polyline points="12,7 12,12 15,15" stroke="#5B9EF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-num" style="font-size:clamp(18px,5vw,26px);">Siempre después</div>
+        <div class="card-label">El problema ya ocurrió</div>
+        <div class="card-sub">cuando lo detectas, el costo ya está hecho</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S3: DIAGNÓSTICO -->
+  <div class="slide scroll-top" id="s3">
+    <div class="slide-eyebrow stagger-el" style="text-align:center;">La solución · Paso 1</div>
+    <h2 class="slide-title stagger-el mb-md" style="font-size:clamp(24px,7vw,40px); text-align:center;">
+      El diagnóstico.<br><span class="volt">48 horas. Sin compromiso.</span>
+    </h2>
+    <div class="step-flow stagger-el">
+      <div class="step">
+        <div class="step-num">PASO 01</div>
+        <div class="step-title">Acceso de lectura</div>
+        <div class="step-body">2–3 horas de solo lectura a tu sistema. Sin modificar nada, sin tocar operación.</div>
+        <div class="step-compat">CONTPAQi · Aspel · SAE · POS local · Excel</div>
+      </div>
+      <div class="step-arrow-down">↓</div>
+      <div class="step">
+        <div class="step-num">PASO 02</div>
+        <div class="step-title">Análisis operacional</div>
+        <div class="step-body">Identificamos patrones, anomalías y oportunidades que tu sistema ya tiene registradas.</div>
+      </div>
+      <div class="step-arrow-down">↓</div>
+      <div class="step volt-accent">
+        <div class="step-num">PASO 03</div>
+        <div class="step-title">Hallazgos en pesos</div>
+        <div class="step-body">3–5 hallazgos concretos cuantificados en MXN. Lo que tu negocio ya sabe — y nadie te había mostrado.</div>
+        <div class="step-compat" style="color:var(--volt); opacity:0.7;">Entrega promedio: 31 horas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S4: HALLAZGOS -->
+  <div class="slide scroll-top left" id="s4">
+    <div class="slide-eyebrow stagger-el">Ejemplo · Reporte de diagnóstico</div>
+    <h2 class="slide-title stagger-el mb-md" style="font-size:clamp(24px,7vw,40px);">
+      Esto es lo que<br><span class="volt">encontramos.</span>
+    </h2>
+    <div class="bento bento-2 stagger-el">
+      <div class="card card-red">
+        <div class="card-tag">Clientes en riesgo</div>
+        <div class="card-num" data-count="23" data-prefix="">0</div>
+        <div class="card-label">sin actividad reciente</div>
+        <div class="card-sub">señal de abandono</div>
+      </div>
+      <div class="card card-amber">
+        <div class="card-tag">Ingreso en riesgo</div>
+        <div class="card-num" data-count="47300" data-prefix="$" data-format="currency">$0</div>
+        <div class="card-label">MXN este mes</div>
+        <div class="card-sub">si no se actúa esta semana</div>
+      </div>
+      <div class="card card-green">
+        <div class="card-tag">Oportunidad</div>
+        <div class="card-num" style="font-size:clamp(14px,4vw,22px); line-height:1.2;">Mar 10–12pm</div>
+        <div class="card-label">horario sin explotar</div>
+        <div class="card-sub">sin inversión adicional</div>
+      </div>
+      <div class="card" style="background:rgba(184,255,61,0.05); border:1px solid rgba(184,255,61,0.25);">
+        <div class="card-tag" style="color:var(--volt);">Acción · esta semana</div>
+        <div style="font-size:11px; font-weight:500; color:var(--volt); line-height:1.4; margin-top:4px;">Reactiva los 23 clientes antes del viernes.</div>
+        <div class="card-sub" style="margin-top:6px; color:rgba(184,255,61,0.7);">Est. $18,000–$24,000 MXN</div>
+      </div>
+    </div>
+    <p class="stagger-el" style="font-size:10px; font-weight:300; color:var(--ivory-dim); line-height:1.6; margin-top:10px;">
+      Ejemplo · comercio minorista mediano, Culiacán · los números serán los de tu operación.
+    </p>
+  </div>
+
+  <!-- S5: M01 -->
+  <div class="slide scroll-top" id="s5">
+    <div class="slide-eyebrow stagger-el" style="text-align:center;">Si el diagnóstico encuentra valor · Paso 2</div>
+    <h2 class="slide-title stagger-el mb-md" style="font-size:clamp(24px,7vw,40px); text-align:center;">
+      El reporte que llega<br><span class="volt">cada lunes.</span>
+    </h2>
+    <div class="m01-card stagger-el">
+      <div class="m01-tag">Módulo M01 · Reporte Operacional Semanal</div>
+      <div class="m01-title">Tu sistema habla. Tú decides.</div>
+      <div class="m01-sub">Sin dashboards que nadie abre. El análisis llega a tu WhatsApp cada semana con lo que importa.</div>
+      <div class="m01-items">
+        <div class="m01-item">
+          <div class="m01-item-tag">Hallazgos</div>
+          <div class="m01-item-body">3–5 en pesos, por impacto</div>
+        </div>
+        <div class="m01-item">
+          <div class="m01-item-tag">Anomalías</div>
+          <div class="m01-item-body">Patrones fuera de lo normal</div>
+        </div>
+        <div class="m01-item">
+          <div class="m01-item-tag">Acción concreta</div>
+          <div class="m01-item-body">Qué hacer esta semana</div>
+        </div>
+        <div class="m01-item">
+          <div class="m01-item-tag">Tu analista</div>
+          <div class="m01-item-body">Pregúntale a tus datos por WhatsApp</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- S6: INVERSIÓN -->
+  <div class="slide scroll-top" id="s6">
+    <div class="slide-eyebrow stagger-el" style="text-align:center;">Inversión · Sin letra chica</div>
+    <h2 class="slide-title stagger-el mb-md" style="font-size:clamp(22px,6.5vw,38px); text-align:center;">
+      Empieza por el diagnóstico.<br><span class="volt">Todo lo demás es tu decisión.</span>
+    </h2>
+    <div class="precio-bloque stagger-el">
+      <div class="precio-card primary">
+        <div class="precio-label">Hoy · Pago único</div>
+        <div class="precio-num">$1,000</div>
+        <div class="precio-desc">Diagnóstico con hallazgos reales cuantificados en pesos.</div>
+        <ul class="precio-includes">
+          <li><span class="precio-dot"></span>Acceso de lectura (2–3 hrs)</li>
+          <li><span class="precio-dot"></span>Análisis de patrones y anomalías</li>
+          <li><span class="precio-dot"></span>3–5 hallazgos en pesos</li>
+          <li><span class="precio-dot"></span>Entrega en 48 horas</li>
+          <li><span class="precio-dot"></span>Sin compromiso de continuidad</li>
+        </ul>
+      </div>
+      <div class="precio-card secondary">
+        <div class="precio-label">Si decides continuar · Mensual</div>
+        <div class="precio-num">$3,500</div>
+        <div class="precio-desc">Reporte semanal M01 + tu analista en WhatsApp. Precio fijo.</div>
+        <ul class="precio-includes">
+          <li><span class="precio-dot"></span>Reporte cada lunes en WhatsApp</li>
+          <li><span class="precio-dot"></span>Hallazgos cuantificados en pesos</li>
+          <li><span class="precio-dot"></span>Tu analista disponible 24/7</li>
+          <li><span class="precio-dot"></span>Revisión mensual de oportunidades</li>
+          <li><span class="precio-dot"></span>Sin contrato de permanencia</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- S7: CIERRE -->
+  <div class="slide" id="s7">
+    <div class="slide-logo stagger-el">nelova<span style="color:var(--volt)">.</span></div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(28px,8vw,52px); margin-bottom:12px; text-align:center;">
+      ¿Qué dice tu negocio<br><span class="volt">esta semana?</span>
+    </h2>
+    <p class="stagger-el" style="font-size:14px; color:var(--ivory-mid); font-weight:300; line-height:1.65; margin-bottom:24px; text-align:center;">
+      El diagnóstico se paga una vez.<br>El reporte solo arranca si tú decides continuar.
+    </p>
+    <div class="cta-num stagger-el">662 424 4021</div>
+    <a href="https://wa.me/526624244021" target="_blank" class="stagger-el"
+      style="display:inline-block; margin-top:14px; padding:14px 28px;
+             background:rgba(184,255,61,0.08); border:1px solid rgba(184,255,61,0.3);
+             border-radius:10px; color:var(--volt); font-family:'DM Mono',monospace;
+             font-size:12px; letter-spacing:0.08em; text-decoration:none;
+             text-transform:uppercase;">
+      Escribir por WhatsApp →
+    </a>
+    <p class="cta-sub stagger-el">Diagnóstico en 48 hrs · $1,000 MXN · Culiacán, Sinaloa</p>
+  </div>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">←</button>
+  <span class="nav-counter" id="counter">1 / 7</span>
+  <button class="nav-btn" id="next">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  const counter = document.getElementById('counter');
+  const bar = document.getElementById('progress-bar');
+  let cur = 0;
+
+  // ── STAGGER ──
+  function triggerStagger(slideEl) {
+    const els = slideEl.querySelectorAll('.stagger-el');
+    els.forEach(el => { el.classList.remove('animate'); el.style.animationDelay = ''; });
+    void slideEl.offsetWidth;
+    els.forEach((el, i) => {
+      el.style.animationDelay = (i * 75) + 'ms';
+      el.classList.add('animate');
+    });
+  }
+
+  // ── COUNTERS ──
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.count);
+    const prefix = el.dataset.prefix || '';
+    const isCurrency = el.dataset.format === 'currency';
+    const duration = 850;
+    const start = performance.now();
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+    function fmt(v) {
+      return isCurrency
+        ? prefix + Math.round(v).toLocaleString('es-MX')
+        : prefix + Math.round(v);
+    }
+    function tick(now) {
+      const p = Math.min((now - start) / duration, 1);
+      el.textContent = fmt(easeOut(p) * target);
+      if (p < 1) requestAnimationFrame(tick);
+      else el.textContent = fmt(target);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function triggerCounters(slideEl) {
+    slideEl.querySelectorAll('[data-count]').forEach(el => {
+      setTimeout(() => animateCounter(el), 280);
+    });
+  }
+
+  // ── SCROLL RESET ──
+  function resetScroll(slideEl) {
+    slideEl.scrollTop = 0;
+  }
+
+  // ── GO ──
+  function go(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + total) % total;
+    slides[cur].classList.add('active');
+    counter.textContent = (cur + 1) + ' / ' + total;
+    bar.style.width = ((cur + 1) / total * 100) + '%';
+    resetScroll(slides[cur]);
+    triggerStagger(slides[cur]);
+    triggerCounters(slides[cur]);
+  }
+
+  document.getElementById('prev').onclick = () => go(cur - 1);
+  document.getElementById('next').onclick = () => go(cur + 1);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
+  });
+
+  let tx = 0, ty = 0;
+  document.addEventListener('touchstart', e => {
+    tx = e.changedTouches[0].screenX;
+    ty = e.changedTouches[0].screenY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - tx;
+    const dy = e.changedTouches[0].screenY - ty;
+    // only horizontal swipes, not vertical scroll
+    if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 45) {
+      go(dx < 0 ? cur + 1 : cur - 1);
+    }
+  }, { passive: true });
+
+  // init
+  counter.textContent = '1 / ' + total;
+  triggerStagger(slides[0]);
+</script>
+</body>
+</html>

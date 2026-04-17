@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>nelova. · Diagnóstico Operacional</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --obsidian: #0a0a0a;
+    --ivory: #e8e6e6;
+    --ivory-dim: #6a6a68;
+    --ivory-mid: #a0a09e;
+    --volt: #B8FF3D;
+    --red: #FF4444;   --red-bg: #1a0808;
+    --amber: #FFB020; --amber-bg: #1a1200;
+    --green: #3DFF8F; --green-bg: #081a0e;
+    --blue: #5B9EF0;  --blue-bg: #080e1a;
+    --surface: #111111;
+    --border: #1e1e1e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 100%; height: 100%; overflow: hidden; }
+  body { background: var(--obsidian); color: var(--ivory); font-family: 'DM Sans', sans-serif; }
+
+  /* ── GRAIN TEXTURE ── */
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+    background-size: 180px 180px;
+    opacity: 0.028;
+    pointer-events: none;
+    z-index: 9998;
+  }
+
+  /* ── PROGRESS BAR ── */
+  #progress-bar {
+    position: fixed; top: 0; left: 0;
+    height: 2px;
+    background: var(--volt);
+    transition: width 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 9999;
+    box-shadow: 0 0 8px rgba(184,255,61,0.5);
+  }
+
+  /* ── DECK & SLIDES ── */
+  .deck { width: 100vw; height: 100vh; position: relative; }
+
+  .slide {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: center;
+    text-align: center;
+    padding: 60px 80px;
+    opacity: 0; pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+  .slide.active { opacity: 1; pointer-events: all; }
+
+  .slide::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(ellipse 60% 50% at 85% 15%, rgba(184,255,61,0.07) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 10% 90%, rgba(184,255,61,0.04) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+  .slide > * { position: relative; z-index: 1; }
+  .slide.left { align-items: flex-start; text-align: left; }
+
+  /* ── STAGGER ENTRANCE ── */
+  @keyframes staggerIn {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .stagger-el {
+    opacity: 0;
+  }
+  .stagger-el.animate {
+    animation: staggerIn 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+
+  /* ── TYPOGRAPHY ── */
+  .slide-eyebrow { font-family: 'DM Mono', monospace; font-size: 13px; color: var(--volt); letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 24px; }
+  .slide-title { font-size: clamp(40px, 6vw, 78px); font-weight: 900; letter-spacing: -0.04em; line-height: 1.05; margin-bottom: 20px; color: var(--ivory); }
+  .slide-title .volt { color: var(--volt); }
+  .slide-sub { font-size: 18px; color: var(--ivory-mid); font-weight: 300; max-width: 560px; line-height: 1.65; }
+  .slide-logo { font-size: 22px; font-weight: 700; letter-spacing: -0.04em; color: var(--ivory); margin-bottom: 48px; }
+  .slide-logo span { color: var(--volt); }
+
+  /* ── BENTO CARDS ── */
+  .bento { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+  .bento.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .card {
+    border-radius: 14px;
+    padding: clamp(14px,2%,22px) clamp(14px,2%,22px) clamp(20px,3.2%,28px);
+    display: flex; flex-direction: column; gap: 5px;
+    position: relative; overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    cursor: default;
+  }
+  .card.full { grid-column: 1 / -1; }
+
+  /* base colors */
+  .card-red     { background: var(--red-bg);   border: 1px solid rgba(255,68,68,0.2); }
+  .card-amber   { background: var(--amber-bg); border: 1px solid rgba(255,176,32,0.15); }
+  .card-green   { background: var(--green-bg); border: 1px solid rgba(61,255,143,0.12); }
+  .card-blue    { background: var(--blue-bg);  border: 1px solid rgba(91,158,240,0.15); }
+  .card-surface { background: var(--surface);  border: 1px solid var(--border); }
+
+  /* hover glows */
+  .card-red:hover   { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,68,68,0.18),  0 0 0 1px rgba(255,68,68,0.3); }
+  .card-amber:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(255,176,32,0.16), 0 0 0 1px rgba(255,176,32,0.25); }
+  .card-green:hover { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(61,255,143,0.14), 0 0 0 1px rgba(61,255,143,0.2); }
+  .card-blue:hover  { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(91,158,240,0.16), 0 0 0 1px rgba(91,158,240,0.25); }
+  .card-volt:hover  { transform: translateY(-2px); box-shadow: 0 8px 32px rgba(184,255,61,0.16), 0 0 0 1px rgba(184,255,61,0.35); }
+
+  .card-tag { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 6px; }
+  .card-red .card-tag     { color: var(--red); }
+  .card-amber .card-tag   { color: var(--amber); }
+  .card-green .card-tag   { color: var(--green); }
+  .card-blue .card-tag    { color: var(--blue); }
+  .card-surface .card-tag { color: var(--ivory-dim); }
+  .card-icon { margin-bottom: 6px; }
+  .card-num { font-size: clamp(32px,4vw,52px); font-weight: 900; letter-spacing: -0.04em; line-height: 1; margin-bottom: 5px; }
+  .card-red .card-num     { color: var(--red); }
+  .card-amber .card-num   { color: var(--amber); }
+  .card-green .card-num   { color: var(--green); }
+  .card-blue .card-num    { color: var(--blue); }
+  .card-surface .card-num { color: var(--ivory); }
+  .card-label { font-size: clamp(12px,1.3vw,15px); font-weight: 600; color: #ffffff; }
+  .card-sub   { font-size: clamp(12px,1.3vw,14px); font-weight: 400; color: rgba(255,255,255,0.75); line-height: 1.5; }
+
+  /* ── STEP FLOW ── */
+  .step-flow { display: flex; align-items: stretch; gap: 0; width: 100%; }
+  .step { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 22px 18px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .step:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.4); }
+  .step.volt-accent { border-color: rgba(184,255,61,0.25); background: rgba(184,255,61,0.04); }
+  .step.volt-accent:hover { box-shadow: 0 6px 24px rgba(184,255,61,0.1); }
+  .step-num { font-family: 'DM Mono', monospace; font-size: 10px; color: var(--volt); letter-spacing: 0.1em; margin-bottom: 8px; }
+  .step-title { font-size: 15px; font-weight: 600; color: #ffffff; margin-bottom: 7px; }
+  .step.volt-accent .step-title { color: var(--volt); }
+  .step-body { font-size: 13px; font-weight: 300; color: var(--ivory-mid); line-height: 1.55; }
+  .step-arrow { font-size: 18px; color: var(--volt); padding: 0 10px; flex-shrink: 0; display: flex; align-items: center; }
+
+  /* ── PRICING ── */
+  .precio-bloque { display: flex; gap: 12px; align-items: stretch; width: 100%; max-width: 700px; }
+  .precio-card { flex: 1; border-radius: 14px; padding: 26px 24px; transition: transform 0.2s ease, box-shadow 0.2s ease; }
+  .precio-card:hover { transform: translateY(-2px); }
+  .precio-card.primary   { background: rgba(184,255,61,0.06); border: 1px solid rgba(184,255,61,0.25); }
+  .precio-card.primary:hover { box-shadow: 0 8px 32px rgba(184,255,61,0.12); }
+  .precio-card.secondary { background: var(--surface); border: 1px solid var(--border); }
+  .precio-card.secondary:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.5); }
+  .precio-label { font-family: 'DM Mono', monospace; font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+  .precio-card.primary .precio-label   { color: var(--volt); }
+  .precio-card.secondary .precio-label { color: var(--ivory-dim); }
+  .precio-num { font-size: clamp(36px,4vw,52px); font-weight: 900; letter-spacing: -0.03em; line-height: 1; margin-bottom: 6px; }
+  .precio-card.primary .precio-num   { color: var(--volt); }
+  .precio-card.secondary .precio-num { color: var(--ivory); }
+  .precio-desc { font-size: 13px; font-weight: 300; color: var(--ivory-mid); margin-bottom: 16px; line-height: 1.55; }
+  .precio-includes { list-style: none; }
+  .precio-includes li { font-size: 13px; font-weight: 300; color: #ffffff; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.05); display: flex; align-items: flex-start; gap: 8px; line-height: 1.45; }
+  .precio-includes li:last-child { border-bottom: none; }
+  .precio-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; margin-top: 5px; }
+  .precio-card.primary .precio-dot   { background: var(--volt); }
+  .precio-card.secondary .precio-dot { background: var(--ivory-dim); }
+
+  /* ── M01 CARD ── */
+  .m01-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px 32px; width: 100%; max-width: 700px; text-align: left; }
+  .m01-tag { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--volt); letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 10px; }
+  .m01-title { font-size: 20px; font-weight: 700; color: #ffffff; margin-bottom: 6px; letter-spacing: -0.02em; }
+  .m01-sub { font-size: 13px; font-weight: 300; color: var(--ivory-mid); margin-bottom: 20px; line-height: 1.5; }
+  .m01-items { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .m01-item { background: rgba(184,255,61,0.03); border: 1px solid rgba(184,255,61,0.1); border-radius: 10px; padding: 12px 14px; transition: border-color 0.2s, background 0.2s; }
+  .m01-item:hover { background: rgba(184,255,61,0.06); border-color: rgba(184,255,61,0.2); }
+  .m01-item-tag { font-family: 'DM Mono', monospace; font-size: 9px; color: var(--volt); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 4px; }
+  .m01-item-body { font-size: 13px; font-weight: 300; color: #ffffff; line-height: 1.45; }
+
+  /* ── CTA ── */
+  .cta-num { font-family: 'DM Mono', monospace; font-size: clamp(28px,3.5vw,46px); font-weight: 500; color: var(--volt); letter-spacing: -0.02em; margin-bottom: 6px; }
+  .cta-sub { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ivory-dim); letter-spacing: 0.06em; margin-top: 14px; }
+
+  /* ── NAV ── */
+  .nav { position: fixed; bottom: 28px; right: 36px; display: flex; align-items: center; gap: 14px; z-index: 100; }
+  .nav-counter { font-family: 'DM Mono', monospace; font-size: 11px; color: var(--ivory-dim); letter-spacing: 0.08em; }
+  .nav-btn { width: 34px; height: 34px; border-radius: 50%; background: var(--surface); border: 1px solid var(--border); color: var(--ivory); font-size: 14px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: border-color 0.2s, background 0.2s, box-shadow 0.2s; }
+  .nav-btn:hover { border-color: var(--volt); background: rgba(184,255,61,0.06); box-shadow: 0 0 12px rgba(184,255,61,0.15); }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+</style>
+</head>
+<body>
+
+<!-- PROGRESS BAR -->
+<div id="progress-bar" style="width: 14.28%"></div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: PORTADA -->
+  <div class="slide active" id="s1">
+    <div class="slide-logo stagger-el">nelova<span>.</span></div>
+    <div class="slide-eyebrow stagger-el">Diagnóstico Operacional · Culiacán, Sinaloa</div>
+    <h1 class="slide-title stagger-el">Tu negocio<br>ya tiene<br><span class="volt">los datos.</span></h1>
+    <p class="slide-sub stagger-el">Nosotros los convertimos en decisiones que te llegan cada semana.</p>
+  </div>
+
+  <!-- SLIDE 2: EL PROBLEMA -->
+  <div class="slide" id="s2">
+    <div class="slide-eyebrow stagger-el">El problema</div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(30px,4vw,56px); margin-bottom:28px;">
+      Tu sistema registra todo.<br>
+      <span class="volt">Nadie lo convierte en decisiones.</span>
+    </h2>
+    <div class="bento cols-3 stagger-el" style="max-width:780px;">
+      <div class="card card-red">
+        <div class="card-tag">Visibilidad</div>
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M3 12C3 12 6 6 12 6C18 6 21 12 21 12C21 12 18 18 12 18C6 18 3 12 3 12Z" stroke="#FF4444" stroke-width="1.5"/>
+            <circle cx="12" cy="12" r="3" stroke="#FF4444" stroke-width="1.5" opacity="0.4"/>
+            <line x1="4" y1="4" x2="20" y2="20" stroke="#FF4444" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="card-num" style="font-size:clamp(20px,2.5vw,32px);">Decisiones a ojo</div>
+        <div class="card-label">Sin datos estructurados</div>
+        <div class="card-sub">los problemas se detectan cuando ya es tarde</div>
+      </div>
+      <div class="card card-amber">
+        <div class="card-tag">Datos sin leer</div>
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <rect x="4" y="3" width="16" height="18" rx="2" stroke="#FFB020" stroke-width="1.5"/>
+            <line x1="8" y1="8" x2="16" y2="8" stroke="#FFB020" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="8" y1="12" x2="16" y2="12" stroke="#FFB020" stroke-width="1.5" stroke-linecap="round"/>
+            <line x1="8" y1="16" x2="12" y2="16" stroke="#FFB020" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+          </svg>
+        </div>
+        <div class="card-num" style="font-size:clamp(20px,2.5vw,32px);">El sistema existe</div>
+        <div class="card-label">Pero nadie lo analiza</div>
+        <div class="card-sub">historial valioso acumulándose sin uso</div>
+      </div>
+      <div class="card card-blue">
+        <div class="card-tag">Reacción tardía</div>
+        <div class="card-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="9" stroke="#5B9EF0" stroke-width="1.5"/>
+            <polyline points="12,7 12,12 15,15" stroke="#5B9EF0" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="12" y1="17" x2="12" y2="17.5" stroke="#5B9EF0" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
+          </svg>
+        </div>
+        <div class="card-num" style="font-size:clamp(20px,2.5vw,32px);">Siempre después</div>
+        <div class="card-label">El problema ya ocurrió</div>
+        <div class="card-sub">cuando lo detectas, el costo ya está hecho</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: EL DIAGNÓSTICO -->
+  <div class="slide" id="s3">
+    <div class="slide-eyebrow stagger-el">La solución · Paso 1</div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(28px,3.8vw,54px); margin-bottom:32px;">
+      El diagnóstico.<br><span class="volt">48 horas. Sin compromiso.</span>
+    </h2>
+    <div class="step-flow stagger-el" style="max-width:820px;">
+      <div class="step">
+        <div class="step-num">PASO 01</div>
+        <div class="step-title">Acceso de lectura</div>
+        <div class="step-body">2–3 horas con acceso de solo lectura a tu sistema. Sin modificar nada, sin tocar operación.</div>
+        <div style="margin-top:10px; font-size:11px; color:var(--ivory-dim); font-family:'DM Mono',monospace; letter-spacing:0.06em;">CONTPAQi · Aspel · SAE · POS local · Excel</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step">
+        <div class="step-num">PASO 02</div>
+        <div class="step-title">Análisis operacional</div>
+        <div class="step-body">Identificamos patrones, anomalías y oportunidades que tu sistema ya tiene registradas.</div>
+        <div style="margin-top:10px; font-size:11px; color:var(--ivory-dim); font-family:'DM Mono',monospace; letter-spacing:0.06em;">+12,400 transacciones analizadas en operaciones locales</div>
+      </div>
+      <div class="step-arrow">→</div>
+      <div class="step volt-accent">
+        <div class="step-num">PASO 03</div>
+        <div class="step-title">Hallazgos en pesos</div>
+        <div class="step-body">3–5 hallazgos concretos cuantificados en MXN. Lo que tu negocio ya sabe — y nadie te había mostrado.</div>
+        <div style="margin-top:10px; font-size:11px; color:var(--volt); opacity:0.7; font-family:'DM Mono',monospace; letter-spacing:0.06em;">Entrega promedio: 31 horas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: PREVIEW HALLAZGOS -->
+  <div class="slide left" id="s4">
+    <div class="slide-eyebrow stagger-el">Ejemplo de hallazgos · Reporte de diagnóstico</div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(26px,3.5vw,48px); margin-bottom:24px;">
+      Esto es lo que<br><span class="volt">encontramos.</span>
+    </h2>
+    <div class="bento stagger-el" style="max-width:680px; grid-template-columns:1fr 1fr;">
+      <div class="card card-red">
+        <div class="card-tag">Clientes en riesgo · sin compra +45 días</div>
+        <div class="card-num" data-count="23" data-prefix="" data-suffix="">0</div>
+        <div class="card-label">clientes sin actividad reciente</div>
+        <div class="card-sub">señal de abandono — ventana de recuperación cerrándose</div>
+      </div>
+      <div class="card card-amber">
+        <div class="card-tag">Ingreso en riesgo · proyección mensual</div>
+        <div class="card-num" data-count="47300" data-prefix="$" data-suffix="" data-format="currency">$0</div>
+        <div class="card-label">MXN en riesgo este mes</div>
+        <div class="card-sub">si no se actúa en los próximos 7 días</div>
+      </div>
+      <div class="card card-green">
+        <div class="card-tag">Oportunidad detectada · horario muerto</div>
+        <div class="card-num" style="font-size:clamp(18px,2.2vw,28px); line-height:1.2;">Mar 10–12pm</div>
+        <div class="card-label">tráfico bajo, margen alto sin explotar</div>
+        <div class="card-sub">accionable sin inversión adicional</div>
+      </div>
+      <div class="card card-volt" style="background:rgba(184,255,61,0.05); border:1px solid rgba(184,255,61,0.25);">
+        <div class="card-tag" style="color:var(--volt);">Acción recomendada · esta semana</div>
+        <div class="card-num" style="color:var(--volt); font-size:clamp(14px,1.8vw,20px); line-height:1.3; margin-top:4px;">Reactiva los 23 clientes antes del viernes.</div>
+        <div class="card-sub" style="margin-top:8px; color:rgba(184,255,61,0.7);">Recuperación estimada: $18,000–$24,000 MXN</div>
+      </div>
+    </div>
+    <p class="stagger-el" style="font-size:12px; font-weight:300; color:var(--ivory-dim); line-height:1.65; margin-top:14px; max-width:680px;">
+      Ejemplo · comercio minorista mediano, Culiacán · los números serán los de tu operación.
+    </p>
+  </div>
+
+  <!-- SLIDE 5: M01 -->
+  <div class="slide" id="s5">
+    <div class="slide-eyebrow stagger-el">Si el diagnóstico encuentra valor · Paso 2</div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(28px,3.8vw,52px); margin-bottom:24px;">
+      El reporte que llega<br><span class="volt">cada lunes.</span>
+    </h2>
+    <div class="m01-card stagger-el">
+      <div class="m01-tag">Módulo M01 · Reporte Operacional Semanal</div>
+      <div class="m01-title">Tu sistema habla. Tú decides.</div>
+      <div class="m01-sub">Sin dashboards que nadie abre. Sin que tú tengas que buscar. El análisis llega a tu WhatsApp cada semana con lo que importa.</div>
+      <div class="m01-items">
+        <div class="m01-item">
+          <div class="m01-item-tag">Hallazgos</div>
+          <div class="m01-item-body">3–5 hallazgos cuantificados en pesos, priorizados por impacto</div>
+        </div>
+        <div class="m01-item">
+          <div class="m01-item-tag">Anomalías</div>
+          <div class="m01-item-body">Patrones fuera de lo normal detectados automáticamente</div>
+        </div>
+        <div class="m01-item">
+          <div class="m01-item-tag">Acción concreta</div>
+          <div class="m01-item-body">Qué hacer esta semana — específico, no genérico</div>
+        </div>
+        <div class="m01-item">
+          <div class="m01-item-tag">Tu analista en WhatsApp</div>
+          <div class="m01-item-body">Pregúntale a tus datos en cualquier momento — sin dashboards, sin esperar</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: INVERSIÓN -->
+  <div class="slide" id="s6">
+    <div class="slide-eyebrow stagger-el">Inversión · Sin letra chica</div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(28px,3.8vw,52px); margin-bottom:28px;">
+      Empieza por el diagnóstico.<br><span class="volt">Todo lo demás es tu decisión.</span>
+    </h2>
+    <div class="precio-bloque stagger-el">
+      <div class="precio-card primary">
+        <div class="precio-label">Hoy · Pago único</div>
+        <div class="precio-num">$1,000</div>
+        <div class="precio-desc">Diagnóstico operacional completo con hallazgos reales de tu negocio cuantificados en pesos.</div>
+        <ul class="precio-includes">
+          <li><span class="precio-dot"></span>Acceso de lectura a tu sistema (2–3 hrs)</li>
+          <li><span class="precio-dot"></span>Análisis de patrones y anomalías</li>
+          <li><span class="precio-dot"></span>3–5 hallazgos en pesos</li>
+          <li><span class="precio-dot"></span>Entrega en 48 horas</li>
+          <li><span class="precio-dot"></span>Sin compromiso de continuidad</li>
+        </ul>
+      </div>
+      <div class="precio-card secondary">
+        <div class="precio-label">Si decides continuar · Mensual</div>
+        <div class="precio-num">$3,500</div>
+        <div class="precio-desc">Reporte semanal M01 + tu analista en WhatsApp. Precio fijo, sin sorpresas al final del mes.</div>
+        <ul class="precio-includes">
+          <li><span class="precio-dot"></span>Reporte cada lunes en WhatsApp</li>
+          <li><span class="precio-dot"></span>Hallazgos cuantificados en pesos</li>
+          <li><span class="precio-dot"></span>Tu analista disponible 24/7</li>
+          <li><span class="precio-dot"></span>Revisión mensual de oportunidades</li>
+          <li><span class="precio-dot"></span>Sin contrato de permanencia</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: CIERRE -->
+  <div class="slide" id="s7">
+    <div class="slide-logo stagger-el">nelova<span>.</span></div>
+    <h2 class="slide-title stagger-el" style="font-size:clamp(32px,4.5vw,64px); margin-bottom:16px;">
+      ¿Qué dice tu negocio<br><span class="volt">esta semana?</span>
+    </h2>
+    <p class="stagger-el" style="font-size:16px; color:var(--ivory-mid); font-weight:300; max-width:460px; line-height:1.65; margin-bottom:28px; text-align:center;">
+      El diagnóstico se paga una vez. El reporte solo arranca si tú decides continuar.
+    </p>
+    <div class="cta-num stagger-el">662 424 4021</div>
+    <a href="https://wa.me/526624244021" target="_blank" class="stagger-el" style="display:inline-block; margin-top:12px; padding:10px 22px; background:rgba(184,255,61,0.08); border:1px solid rgba(184,255,61,0.3); border-radius:8px; color:var(--volt); font-family:'DM Mono',monospace; font-size:12px; letter-spacing:0.08em; text-decoration:none; text-transform:uppercase; transition: background 0.2s, box-shadow 0.2s;">Escribir por WhatsApp →</a>
+    <p class="cta-sub stagger-el">Diagnóstico en 48 hrs · $1,000 MXN · Culiacán, Sinaloa</p>
+  </div>
+
+</div>
+
+<div class="nav">
+  <button class="nav-btn" id="prev">←</button>
+  <span class="nav-counter" id="counter">1 / 7</span>
+  <button class="nav-btn" id="next">→</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const total  = slides.length;
+  const counter = document.getElementById('counter');
+  const progressBar = document.getElementById('progress-bar');
+  let cur = 0;
+  let counterAnimations = {};
+
+  // ── STAGGER ──────────────────────────────────────────────
+  function triggerStagger(slideEl) {
+    const els = slideEl.querySelectorAll('.stagger-el');
+    els.forEach(el => {
+      el.classList.remove('animate');
+      el.style.animationDelay = '';
+    });
+    // force reflow
+    void slideEl.offsetWidth;
+    els.forEach((el, i) => {
+      el.style.animationDelay = (i * 90) + 'ms';
+      el.classList.add('animate');
+    });
+  }
+
+  // ── COUNTER ANIMATION ────────────────────────────────────
+  function animateCounter(el) {
+    const target = parseInt(el.dataset.count);
+    const prefix = el.dataset.prefix || '';
+    const isCurrency = el.dataset.format === 'currency';
+    const duration = 900;
+    const start = performance.now();
+
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+
+    function format(val) {
+      if (isCurrency) {
+        return prefix + val.toLocaleString('es-MX');
+      }
+      return prefix + Math.round(val);
+    }
+
+    function tick(now) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / duration, 1);
+      const value = easeOut(progress) * target;
+      el.textContent = format(value);
+      if (progress < 1) requestAnimationFrame(tick);
+      else el.textContent = format(target);
+    }
+    requestAnimationFrame(tick);
+  }
+
+  function triggerCounters(slideEl) {
+    slideEl.querySelectorAll('[data-count]').forEach(el => {
+      // small delay so it fires after stagger entrance
+      setTimeout(() => animateCounter(el), 300);
+    });
+  }
+
+  // ── NAVIGATION ───────────────────────────────────────────
+  function go(n) {
+    slides[cur].classList.remove('active');
+    cur = (n + total) % total;
+    slides[cur].classList.add('active');
+    counter.textContent = (cur + 1) + ' / ' + total;
+    progressBar.style.width = ((cur + 1) / total * 100) + '%';
+    triggerStagger(slides[cur]);
+    triggerCounters(slides[cur]);
+  }
+
+  document.getElementById('prev').onclick = () => go(cur - 1);
+  document.getElementById('next').onclick = () => go(cur + 1);
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') go(cur + 1);
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   go(cur - 1);
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(dx) > 50) go(dx < 0 ? cur + 1 : cur - 1);
+  }, { passive: true });
+
+  // WhatsApp hover
+  const waBtn = document.querySelector('a[href*="wa.me"]');
+  if (waBtn) {
+    waBtn.addEventListener('mouseenter', () => { waBtn.style.background = 'rgba(184,255,61,0.14)'; waBtn.style.boxShadow = '0 0 16px rgba(184,255,61,0.2)'; });
+    waBtn.addEventListener('mouseleave', () => { waBtn.style.background = 'rgba(184,255,61,0.08)'; waBtn.style.boxShadow = 'none'; });
+  }
+
+  // Init first slide
+  counter.textContent = '1 / ' + total;
+  triggerStagger(slides[0]);
+</script>
+</body>
+</html>
